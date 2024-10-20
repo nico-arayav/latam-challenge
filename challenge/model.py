@@ -1,6 +1,12 @@
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.utils import shuffle
+from sklearn.linear_model import LogisticRegression
+import joblib
 import numpy as np
 from datetime import datetime
+import os
 
 from typing import Tuple, Union, List
 
@@ -11,6 +17,20 @@ class DelayModel:
     ):
         self._model = None # Model should be saved in this attribute.
         self.preprocessor = DataPreprocessor()
+        self.n_y0 = None
+        self.n_y1 = None
+        self.top_10_features = [
+            "OPERA_Latin American Wings", 
+            "MES_7",
+            "MES_10",
+            "OPERA_Grupo LATAM",
+            "MES_12",
+            "TIPOVUELO_I",
+            "MES_4",
+            "MES_11",
+            "OPERA_Sky Airline",
+            "OPERA_Copa Air"
+        ]
 
     def preprocess(
         self,
@@ -29,19 +49,40 @@ class DelayModel:
             or
             pd.DataFrame: features.
         """
-        # Create the 'period_day' feature
-        data['period_day'] = data['Fecha-I'].apply(self.preprocessor.get_period_day)
-        data['high_season'] = data['Fecha-I'].apply(self.preprocessor.is_high_season)
-        data['min_diff'] = data.apply(self.preprocessor.get_min_diff, axis=1)
-        threshold_in_minutes = 15
-        data['delay'] = np.where(data['min_diff'] > threshold_in_minutes, 1, 0)
+        # Check if 'Fecha-I' column exists before applying transformations
+        if 'Fecha-I' in data.columns:
+            data['period_day'] = data['Fecha-I'].apply(self.preprocessor.get_period_day)
+            data['high_season'] = data['Fecha-I'].apply(self.preprocessor.is_high_season)
+            data['min_diff'] = data.apply(self.preprocessor.get_min_diff, axis=1)
+            threshold_in_minutes = 15
+            data['delay'] = np.where(data['min_diff'] > threshold_in_minutes, 1, 0)
+        else:
+            # If 'Fecha-I' is not present, set default values or skip these features
+            data['period_day'] = 0
+            data['high_season'] = 0
+            data['min_diff'] = 0
+            data['delay'] = 0
+
+        # Calculate class distribution before filtering features
+        if target_column:
+            target = data[target_column]
+            self.n_y0 = len(target[target == 0])
+            self.n_y1 = len(target[target == 1])
+
+        # One-hot encode categorical variables
+        features = pd.concat([
+            pd.get_dummies(data['OPERA'], prefix='OPERA'),
+            pd.get_dummies(data['TIPOVUELO'], prefix='TIPOVUELO'),
+            pd.get_dummies(data['MES'], prefix='MES')
+        ], axis=1)
+
+        features = features.reindex(columns=self.top_10_features, fill_value=0)
 
         if target_column:
-            X = data.drop(columns=[target_column])
-            y = data[target_column]
-            return X, y
+            target = data[[target_column]]
+            return features, target
         
-        return data
+        return features
 
     def fit(
         self,
@@ -55,7 +96,16 @@ class DelayModel:
             features (pd.DataFrame): preprocessed data.
             target (pd.DataFrame): target.
         """
-        return
+
+        # Split the data into training and validation sets
+        X_train, _, y_train, _ = train_test_split(features, target, test_size=0.33, random_state=42)
+
+        # Train Logistic Regression model with class weights
+        self._model = LogisticRegression(class_weight={1: self.n_y0/len(y_train), 0: self.n_y1/len(y_train)})
+        self._model.fit(X_train, y_train.values.ravel())
+
+        # Save the model to disk
+        joblib.dump(self._model, 'model.pkl')
 
     def predict(
         self,
@@ -70,7 +120,15 @@ class DelayModel:
         Returns:
             (List[int]): predicted targets.
         """
-        return
+
+        # Load the model from disk if it hasn't been loaded yet
+        if self._model is None:
+            self._model = joblib.load('model.pkl')
+
+        # Make predictions
+        predictions = self._model.predict(features)
+        return predictions.tolist()
+    
     
 class DataPreprocessor:
 
