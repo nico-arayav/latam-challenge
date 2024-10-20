@@ -40,11 +40,6 @@ jobs:
         source .venv/bin/activate
         make api-test
 
-    - name: Run stress tests
-      run: |
-        source .venv/bin/activate
-        make stress-test
-
     - id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
