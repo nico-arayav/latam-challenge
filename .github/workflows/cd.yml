@@ -40,6 +40,10 @@ jobs:
       with:
         version: '>= 363.0.0'
 
+    - name: Configure Docker for Google Cloud
+      run: |
+        gcloud auth configure-docker
+
     - name: Build Docker image
       run: |
         docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/latam-challenge-api .
