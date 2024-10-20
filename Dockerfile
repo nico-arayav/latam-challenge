@@ -20,7 +20,7 @@ COPY . .
 COPY model.pkl .
 
 # Expose the port FastAPI will run on
-EXPOSE 8000
+EXPOSE 8080
 
 # Set the entry point to run the FastAPI application
-CMD ["uvicorn", "challenge.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "challenge.api:app", "--host", "0.0.0.0", "--port", "8080"]
