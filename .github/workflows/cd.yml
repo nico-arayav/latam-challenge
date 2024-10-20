@@ -58,4 +58,5 @@ jobs:
           --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/latam-challenge-api \
           --platform managed \
           --region ${{ secrets.GCP_REGION }} \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --project ${{ secrets.GCP_PROJECT_ID }}
