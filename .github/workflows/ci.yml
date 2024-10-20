@@ -28,3 +28,18 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         pip install -r requirements-test.txt
+
+    - name: Run model tests
+      run: |
+        source .venv/bin/activate
+        make model-test
+
+    - name: Run API tests
+      run: |
+        source .venv/bin/activate
+        make api-test
+
+    - name: Run stress tests
+      run: |
+        source .venv/bin/activate
+        make stress-test
