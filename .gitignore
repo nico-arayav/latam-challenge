@@ -126,3 +126,6 @@ dmypy.json
 
 # FastAPI specific
 *.db
+
+# pytest reports
+reports/
