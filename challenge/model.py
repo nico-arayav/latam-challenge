@@ -1,12 +1,9 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.utils import shuffle
 from sklearn.linear_model import LogisticRegression
 import joblib
 import numpy as np
 from datetime import datetime
-import os
 
 from typing import Tuple, Union, List
 
@@ -63,18 +60,18 @@ class DelayModel:
             data['min_diff'] = 0
             data['delay'] = 0
 
-        # Calculate class distribution before filtering features
-        if target_column:
-            target = data[target_column]
-            self.n_y0 = len(target[target == 0])
-            self.n_y1 = len(target[target == 1])
-
         # One-hot encode categorical variables
         features = pd.concat([
             pd.get_dummies(data['OPERA'], prefix='OPERA'),
             pd.get_dummies(data['TIPOVUELO'], prefix='TIPOVUELO'),
             pd.get_dummies(data['MES'], prefix='MES')
         ], axis=1)
+
+        # Calculate balance before filtering features
+        if target_column:
+            _, _, y_train, _ = train_test_split(features, data[target_column], test_size = 0.33, random_state = 42)
+            self.n_y0 = len(y_train[y_train == 0])
+            self.n_y1 = len(y_train[y_train == 1])
 
         features = features.reindex(columns=self.top_10_features, fill_value=0)
 
