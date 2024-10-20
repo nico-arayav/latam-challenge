@@ -9,6 +9,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -26,20 +30,19 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -r requirements-test.txt
 
-    - name: Build Docker image
-      run: |
-        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/latam-challenge-api .
-
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v0
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v2'
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v0
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
       with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        version: '>= 363.0.0'
+
+    - name: Build Docker image
+      run: |
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/latam-challenge-api .
 
     - name: Push Docker image to Google Container Registry
       run: |
